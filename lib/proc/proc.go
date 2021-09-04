@@ -2,6 +2,7 @@ package proc
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -75,7 +76,29 @@ func (p *Proc) RemovePod(pod string, withVolumes bool) (err error) {
 	return err
 }
 
+func (p *Proc) BuildImage(pod, serviceName, context, target string, buildArgs map[string]string) (imageName string, err error) {
+	tag := fmt.Sprintf("img-%v-%v", pod, serviceName)
+	if context == "" {
+		context = "."
+	}
+	args := []string{"build", context, "--tag", tag}
+	if target != "" {
+		args = append(args, "--target", target)
+	}
+	for k, v := range buildArgs {
+		args = append(args, fmt.Sprintf("%v=%v", k, v))
+	}
+	err = p.runPodmanCommand(args...)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("localhost/%v:latest", tag), nil
+}
+
 func (p *Proc) removeVolumes(volumes []string) error {
+	if len(volumes) == 0 {
+		return nil
+	}
 	args := []string{"volume", "rm", "--force"}
 	args = append(args, volumes...)
 	return p.runPodmanCommand(args...)
@@ -152,13 +175,15 @@ func (p *Proc) inspect(cntId string) (*Inspect, error) {
 }
 
 func (p *Proc) canonicalImageName(image string) string {
-	slashes := strings.Count(image, "/")
-	if slashes == 0 {
-		return "docker.io/library/" + image
-	}
-	if slashes == 1 {
-		return "docker.io/" + image
-	}
+	/*
+		slashes := strings.Count(image, "/")
+		if slashes == 0 {
+			return "docker.io/library/" + image
+		}
+		if slashes == 1 {
+			return "docker.io/" + image
+		}
+	*/
 	return image
 }
 

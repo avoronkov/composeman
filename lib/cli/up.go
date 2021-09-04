@@ -41,8 +41,20 @@ func (u *Up) Run(args []string) error {
 		return err
 	}
 
+	image := srv.Image
+	if image == "" {
+		if srv.Build == nil {
+			return fmt.Errorf("'image' or 'build' should be specified for service %v", service)
+		}
+		builtImage, err := u.Proc.BuildImage(pod, service, srv.Build.Context, srv.Build.Target, srv.Build.Args)
+		if err != nil {
+			return err
+		}
+		image = builtImage
+	}
+
 	// Run service
-	err = u.Proc.RunServiceInPod(pod, srv.Volumes, srv.Environment, srv.Image)
+	err = u.Proc.RunServiceInPod(pod, srv.Volumes, srv.Environment, image)
 	if err != nil {
 		return err
 	}

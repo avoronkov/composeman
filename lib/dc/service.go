@@ -7,6 +7,11 @@ type Service struct {
 	Environment []string `yaml:"environment"`
 	Ports       []string `yaml:"ports"`
 	Volumes     []string `yaml:"volumes"`
+	Build       *struct {
+		Context string            `yaml:"context"`
+		Target  string            `yaml:"target"`
+		Args    map[string]string `yaml:"args"`
+	} `yaml:"build"`
 }
 
 func (s *Service) String() string {
