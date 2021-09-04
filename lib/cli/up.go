@@ -54,7 +54,7 @@ func (u *Up) Run(args []string) error {
 	}
 
 	// Run service
-	err = u.Proc.RunServiceInPod(pod, srv.Volumes, srv.Environment, image)
+	err = u.Proc.RunServiceInPod(pod, srv.Volumes, srv.Environment, image, srv.Command)
 	if err != nil {
 		return err
 	}

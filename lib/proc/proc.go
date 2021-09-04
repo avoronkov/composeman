@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/avoronkov/composeman/lib/dc"
+	"github.com/kballard/go-shellquote"
 )
 
 type Proc struct {
@@ -43,8 +44,8 @@ func (p *Proc) CreatePod(pod string, ports []string) error {
 	return p.runPodmanCommand(args...)
 }
 
-func (p *Proc) RunServiceInPod(pod string, volumes []string, env []string, image string) error {
-	args := []string{"run", "-dt", "--pod", pod}
+func (p *Proc) RunServiceInPod(pod string, volumes []string, env []string, image, cmd string) error {
+	args := []string{"run", "-t", "--pod", pod}
 	if len(volumes) > 0 {
 		args = append(args, "--security-opt", "label=disable")
 		for _, volume := range volumes {
@@ -54,8 +55,14 @@ func (p *Proc) RunServiceInPod(pod string, volumes []string, env []string, image
 	for _, e := range env {
 		args = append(args, "-e", e)
 	}
-
 	args = append(args, p.canonicalImageName(image))
+	if cmd != "" {
+		words, err := shellquote.Split(cmd)
+		if err != nil {
+			return err
+		}
+		args = append(args, words...)
+	}
 	return p.runPodmanCommand(args...)
 }
 

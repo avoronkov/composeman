@@ -7,6 +7,7 @@ type Service struct {
 	Environment []string `yaml:"environment"`
 	Ports       []string `yaml:"ports"`
 	Volumes     []string `yaml:"volumes"`
+	Command     string   `yaml:"command"`
 	Build       *struct {
 		Context string            `yaml:"context"`
 		Target  string            `yaml:"target"`
