@@ -38,7 +38,7 @@ func (p *Proc) CreatePod(pod string, ports []string) error {
 	for _, p := range ports {
 		args = append(args, "-p", p)
 	}
-	return p.runPodmanCommand(args)
+	return p.runPodmanCommand(args...)
 }
 
 func (p *Proc) RunServiceInPod(pod string, volumes []string, env []string, image string) error {
@@ -54,7 +54,11 @@ func (p *Proc) RunServiceInPod(pod string, volumes []string, env []string, image
 	}
 
 	args = append(args, p.canonicalImageName(image))
-	return p.runPodmanCommand(args)
+	return p.runPodmanCommand(args...)
+}
+
+func (p *Proc) RemovePod(pod string) error {
+	return p.runPodmanCommand("pod", "rm", "-f", pod)
 }
 
 func (p *Proc) canonicalImageName(image string) string {
@@ -68,7 +72,7 @@ func (p *Proc) canonicalImageName(image string) string {
 	return image
 }
 
-func (p *Proc) runPodmanCommand(args []string) error {
+func (p *Proc) runPodmanCommand(args ...string) error {
 	log.Printf("Running: podman %v", strings.Join(args, " "))
 	cmd := exec.Command("podman", args...)
 	cmd.Stderr = os.Stderr

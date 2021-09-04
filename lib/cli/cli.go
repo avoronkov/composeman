@@ -21,7 +21,8 @@ func New(p *proc.Proc) *Cli {
 	return &Cli{
 		Proc: p,
 		commands: map[string]subCommand{
-			"up": NewUp(p),
+			"up":   NewUp(p),
+			"down": NewDown(p),
 		},
 	}
 }
