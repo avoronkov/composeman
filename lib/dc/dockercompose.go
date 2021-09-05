@@ -17,6 +17,10 @@ func NewDockerCompose(files ...string) (*DockerCompose, error) {
 		Services: map[string]Service{},
 	}
 
+	if len(files) == 0 {
+		files = append(files, "docker-compose.yml")
+	}
+
 	for _, file := range files {
 		f, err := os.Open(file)
 		if err != nil {

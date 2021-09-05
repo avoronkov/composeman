@@ -1,45 +1,65 @@
 package cli
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"os"
 
+	"github.com/avoronkov/composeman/lib/dc"
 	"github.com/avoronkov/composeman/lib/proc"
 )
 
 type subCommand interface {
+	Init(p *proc.Proc)
 	Run(args []string) error
 }
 
 type Cli struct {
-	Proc     *proc.Proc
 	commands map[string]subCommand
 }
 
-func New(p *proc.Proc) *Cli {
+func New() *Cli {
 	return &Cli{
-		Proc: p,
 		commands: map[string]subCommand{
-			"up":   NewUp(p),
-			"down": NewDown(p),
+			"up":   NewUp(),
+			"down": NewDown(),
 		},
 	}
 }
 
 func (c *Cli) Run(args []string) (rc int) {
-	if len(args) == 0 {
+	// Parse command line arguments
+	flags := flag.NewFlagSet("composeman", flag.ContinueOnError)
+	composeFiles := &Strings{}
+	flags.Var(composeFiles, "f", "Specify an alternate compose file")
+	if err := flags.Parse(args); err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		return 2
+	}
+
+	// Init Proc and DockerCompose
+	cfg, err := dc.NewDockerCompose([]string(*composeFiles)...)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		return 1
+	}
+	pr := proc.New(cfg)
+
+	if flags.NArg() == 0 {
 		c.usage(os.Stderr)
 		return 2
 	}
 
-	cmd, ok := c.commands[args[0]]
+	cmd, ok := c.commands[flags.Arg(0)]
 	if !ok {
 		fmt.Fprintf(os.Stderr, "Unknown command specified: %v", args[0])
 		return 2
 	}
 
-	if err := cmd.Run(args[1:]); err != nil {
+	cmd.Init(pr)
+
+	if err := cmd.Run(flags.Args()[1:]); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err.Error())
 		return 1
 	}
@@ -53,4 +73,15 @@ func (c *Cli) usage(out io.Writer) {
 	for name := range c.commands {
 		fmt.Fprintf(out, "- %v\n", name)
 	}
+}
+
+type Strings []string
+
+func (s *Strings) String() string {
+	return fmt.Sprintf("%v", []string(*s))
+}
+
+func (s *Strings) Set(v string) error {
+	*s = append(*s, v)
+	return nil
 }

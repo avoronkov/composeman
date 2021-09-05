@@ -10,10 +10,12 @@ type Down struct {
 	Proc *proc.Proc
 }
 
-func NewDown(p *proc.Proc) *Down {
-	return &Down{
-		Proc: p,
-	}
+func NewDown() *Down {
+	return &Down{}
+}
+
+func (d *Down) Init(p *proc.Proc) {
+	d.Proc = p
 }
 
 // Arguments: [-v]

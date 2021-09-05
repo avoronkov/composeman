@@ -11,10 +11,12 @@ type Up struct {
 	Proc *proc.Proc
 }
 
-func NewUp(p *proc.Proc) *Up {
-	return &Up{
-		Proc: p,
-	}
+func NewUp() *Up {
+	return &Up{}
+}
+
+func (u *Up) Init(p *proc.Proc) {
+	u.Proc = p
 }
 
 // Arguments: [-d] <service>
@@ -62,8 +64,13 @@ func (u *Up) Run(args []string) error {
 		image = builtImage
 	}
 
+	env, err := srv.Env()
+	if err != nil {
+		return err
+	}
+
 	// Run service
-	err = u.Proc.RunServiceInPod(pod, srv.Volumes, srv.Environment, image, srv.Command, detach)
+	err = u.Proc.RunServiceInPod(pod, srv.Volumes, env, image, srv.Command, detach)
 	if err != nil {
 		return err
 	}
