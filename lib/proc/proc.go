@@ -44,8 +44,11 @@ func (p *Proc) CreatePod(pod string, ports []string) error {
 	return p.runPodmanCommand(args...)
 }
 
-func (p *Proc) RunServiceInPod(pod string, volumes []string, env []string, image, cmd string) error {
+func (p *Proc) RunServiceInPod(pod string, volumes []string, env []string, image, cmd string, detach bool) error {
 	args := []string{"run", "-t", "--pod", pod}
+	if detach {
+		args = append(args, "-d")
+	}
 	if len(volumes) > 0 {
 		args = append(args, "--security-opt", "label=disable")
 		for _, volume := range volumes {

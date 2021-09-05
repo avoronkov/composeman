@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"flag"
 	"fmt"
 
 	"github.com/avoronkov/composeman/lib/proc"
@@ -18,12 +19,20 @@ func NewUp(p *proc.Proc) *Up {
 
 // Arguments: [-d] <service>
 func (u *Up) Run(args []string) error {
+	// Parse arguments
+	flags := flag.NewFlagSet("composeman up", flag.ContinueOnError)
+	detach := false
+	flags.BoolVar(&detach, "d", false, "Run containers in the background")
+	if err := flags.Parse(args); err != nil {
+		return err
+	}
+
 	// TODO handle -d
-	if len(args) < 1 {
+	if len(flags.Args()) < 1 {
 		return fmt.Errorf("Incorrect usage: up [-d] <service>")
 	}
 
-	service := args[0]
+	service := flags.Arg(0)
 
 	srv, ok := u.Proc.FindService(service)
 	if !ok {
@@ -54,7 +63,7 @@ func (u *Up) Run(args []string) error {
 	}
 
 	// Run service
-	err = u.Proc.RunServiceInPod(pod, srv.Volumes, srv.Environment, image, srv.Command)
+	err = u.Proc.RunServiceInPod(pod, srv.Volumes, srv.Environment, image, srv.Command, detach)
 	if err != nil {
 		return err
 	}
