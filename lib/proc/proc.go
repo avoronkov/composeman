@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"strings"
 
@@ -47,6 +48,11 @@ func (p *Proc) CreatePod(pod string, ports []string) error {
 // Run specified services in the pod.
 // Run all services if empty list is specified.
 func (p *Proc) RunServicesInPod(pod string, services []string, detach bool) error {
+	var interupt chan os.Signal
+	if !detach {
+		interupt = make(chan os.Signal, 1)
+		signal.Notify(interupt, os.Interrupt, os.Kill)
+	}
 	if pod == "" {
 		pd, err := p.DetectPodName()
 		if err != nil {
@@ -92,6 +98,12 @@ func (p *Proc) RunServicesInPod(pod string, services []string, detach bool) erro
 			return err
 		}
 	}
+	if !detach {
+		sig := <-interupt
+		log.Printf("Signal caught (%v). Interupting...", sig)
+		// maybe withVolumes should be false?
+		return p.RemovePod(pod, true)
+	}
 	return nil
 }
 
@@ -132,6 +144,10 @@ func (p *Proc) runServiceInPod(pod string, volumes []string, envFile string, env
 			return err
 		}
 		args = append(args, words...)
+	}
+	if !detach {
+		go p.runPodmanCommand(args...)
+		return nil
 	}
 	return p.runPodmanCommand(args...)
 }
