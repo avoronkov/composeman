@@ -87,7 +87,7 @@ func (p *Proc) RunServicesInPod(pod string, services []string, detach bool) erro
 		if err != nil {
 			return err
 		}
-		err = p.RunServiceInPod(pod, srv.Volumes, env, img, srv.Command, detach)
+		err = p.runServiceInPod(pod, srv.Volumes, srv.EnvFile, env, img, srv.Command, detach, services)
 		if err != nil {
 			return err
 		}
@@ -105,7 +105,7 @@ func (p *Proc) prepareServiceImage(pod, service string, srv *dc.Service) (imageN
 	return p.BuildImage(pod, service, srv.Build.Context, srv.Build.Target, srv.Build.Args)
 }
 
-func (p *Proc) RunServiceInPod(pod string, volumes []string, env []string, image, cmd string, detach bool) error {
+func (p *Proc) runServiceInPod(pod string, volumes []string, envFile string, env []string, image, cmd string, detach bool, hosts []string) error {
 	args := []string{"run", "-t", "--pod", pod}
 	if detach {
 		args = append(args, "-d")
@@ -116,8 +116,14 @@ func (p *Proc) RunServiceInPod(pod string, volumes []string, env []string, image
 			args = append(args, "-v", volume)
 		}
 	}
+	if envFile != "" {
+		args = append(args, "--env-file", envFile)
+	}
 	for _, e := range env {
 		args = append(args, "-e", e)
+	}
+	for _, h := range hosts {
+		args = append(args, "--add-host", fmt.Sprintf("%v:127.0.0.1", h))
 	}
 	args = append(args, p.canonicalImageName(image))
 	if cmd != "" {
