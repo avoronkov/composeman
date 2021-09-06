@@ -44,6 +44,67 @@ func (p *Proc) CreatePod(pod string, ports []string) error {
 	return p.runPodmanCommand(args...)
 }
 
+// Run specified services in the pod.
+// Run all services if empty list is specified.
+func (p *Proc) RunServicesInPod(pod string, services []string, detach bool) error {
+	if pod == "" {
+		pd, err := p.DetectPodName()
+		if err != nil {
+			return err
+		}
+		pod = pd
+	}
+	if len(services) == 0 {
+		for name := range p.compose.Services {
+			services = append(services, name)
+		}
+	}
+	// find all ports mappings
+	ports := []string{}
+	for _, service := range services {
+		srv, ok := p.compose.Services[service]
+		if !ok {
+			return fmt.Errorf("Unknown service: %v", service)
+		}
+		ports = append(ports, srv.Ports...)
+	}
+
+	// start pod
+	if err := p.CreatePod(pod, ports); err != nil {
+		return err
+	}
+
+	for _, service := range services {
+		srv, ok := p.compose.Services[service]
+		if !ok {
+			return fmt.Errorf("Unknown service: %v", service)
+		}
+		img, err := p.prepareServiceImage(pod, service, &srv)
+		if err != nil {
+			return err
+		}
+		env, err := srv.Env()
+		if err != nil {
+			return err
+		}
+		err = p.RunServiceInPod(pod, srv.Volumes, env, img, srv.Command, detach)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (p *Proc) prepareServiceImage(pod, service string, srv *dc.Service) (imageName string, err error) {
+	if image := srv.Image; image != "" {
+		return image, nil
+	}
+	if srv.Build == nil {
+		return "", fmt.Errorf("'image' or 'build' should be specified for service %v", service)
+	}
+	return p.BuildImage(pod, service, srv.Build.Context, srv.Build.Target, srv.Build.Args)
+}
+
 func (p *Proc) RunServiceInPod(pod string, volumes []string, env []string, image, cmd string, detach bool) error {
 	args := []string{"run", "-t", "--pod", pod}
 	if detach {

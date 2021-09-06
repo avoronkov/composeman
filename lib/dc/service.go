@@ -5,6 +5,7 @@ import "fmt"
 type Service struct {
 	Image       string      `yaml:"image"`
 	Environment interface{} `yaml:"environment"`
+	EnvFile     string      `yaml:"env_file"`
 	Ports       []string    `yaml:"ports"`
 	Volumes     []string    `yaml:"volumes"`
 	Command     string      `yaml:"command"`
