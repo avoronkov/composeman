@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/avoronkov/composeman/lib/dc"
-	"github.com/kballard/go-shellquote"
+	shellquote "github.com/kballard/go-shellquote"
 )
 
 type Proc struct {
@@ -47,22 +47,26 @@ func (p *Proc) CreatePod(pod string, ports []string) error {
 
 // Run specified services in the pod.
 // Run all services if empty list is specified.
-func (p *Proc) RunServicesInPod(pod string, services []string, detach bool) error {
+func (p *Proc) RunServicesInPod(pod string, services []string, detach bool) (err error) {
 	var interupt chan os.Signal
 	if !detach {
 		interupt = make(chan os.Signal, 1)
 		signal.Notify(interupt, os.Interrupt, os.Kill)
 	}
 	if pod == "" {
-		pd, err := p.DetectPodName()
+		pod, err = p.DetectPodName()
 		if err != nil {
 			return err
 		}
-		pod = pd
 	}
 	if len(services) == 0 {
 		for name := range p.compose.Services {
 			services = append(services, name)
+		}
+	} else {
+		services, err = p.findDependingServices(services)
+		if err != nil {
+			return err
 		}
 	}
 	// find all ports mappings
@@ -287,4 +291,36 @@ func (p *Proc) runPodmanCommand(args ...string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
 	return cmd.Run()
+}
+
+func (p *Proc) findDependingServices(services []string) ([]string, error) {
+	result := make(map[string]bool)
+	for _, service := range services {
+		if err := p.addDependindServices(service, &result); err != nil {
+			return nil, err
+		}
+	}
+	list := make([]string, 0, len(result))
+	for s := range result {
+		list = append(list, s)
+	}
+	return list, nil
+}
+
+func (p *Proc) addDependindServices(service string, result *map[string]bool) error {
+	if (*result)[service] == true {
+		// already added
+		return nil
+	}
+	srv, ok := p.compose.Services[service]
+	if !ok {
+		return fmt.Errorf("Unknown service: %v", service)
+	}
+	(*result)[service] = true
+	for _, dep := range srv.DependsOn {
+		if err := p.addDependindServices(dep, result); err != nil {
+			return err
+		}
+	}
+	return nil
 }
