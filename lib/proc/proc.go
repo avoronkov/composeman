@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/avoronkov/composeman/lib/dc"
 	shellquote "github.com/kballard/go-shellquote"
@@ -51,7 +52,7 @@ func (p *Proc) RunServicesInPod(pod string, services []string, detach bool) (err
 	var interupt chan os.Signal
 	if !detach {
 		interupt = make(chan os.Signal, 1)
-		signal.Notify(interupt, os.Interrupt, os.Kill)
+		signal.Notify(interupt, os.Interrupt, os.Kill, syscall.SIGTERM)
 	}
 	if pod == "" {
 		pod, err = p.DetectPodName()
