@@ -98,7 +98,7 @@ func (p *Proc) RunServicesInPod(pod string, services []string, detach bool) (err
 		if err != nil {
 			return err
 		}
-		err = p.runServiceInPod(pod, srv.Volumes, srv.EnvFile, env, img, srv.Command, detach, services)
+		err = p.runServiceInPod(pod, srv.Volumes, srv.EnvFile, env, img, srv.Command, detach, services, false)
 		if err != nil {
 			return err
 		}
@@ -112,6 +112,72 @@ func (p *Proc) RunServicesInPod(pod string, services []string, detach bool) (err
 	return nil
 }
 
+// Implementing "run" command
+func (p *Proc) RunService(pod, service string) (err error) {
+	if pod == "" {
+		pod, err = p.DetectPodName()
+		if err != nil {
+			return err
+		}
+	}
+	services, err := p.findDependingServices([]string{service})
+	if err != nil {
+		return err
+	}
+	// find all ports mappings
+	// TODO deduplicate
+	ports := []string{}
+	for _, s := range services {
+		srv, ok := p.compose.Services[s]
+		if !ok {
+			return fmt.Errorf("Unknown service: %v", s)
+		}
+		ports = append(ports, srv.Ports...)
+	}
+
+	// start pod
+	if err := p.CreatePod(pod, ports); err != nil {
+		return err
+	}
+
+	for _, s := range services {
+		if s == service {
+			// "main" service will be started later
+			continue
+		}
+		srv, ok := p.compose.Services[s]
+		if !ok {
+			return fmt.Errorf("Unknown service: %v", s)
+		}
+		img, err := p.prepareServiceImage(pod, s, &srv)
+		if err != nil {
+			return err
+		}
+		env, err := srv.Env()
+		if err != nil {
+			return err
+		}
+		err = p.runServiceInPod(pod, srv.Volumes, srv.EnvFile, env, img, srv.Command, false, services, false)
+		if err != nil {
+			return err
+		}
+	}
+	srv, ok := p.compose.Services[service]
+	if !ok {
+		return fmt.Errorf("Unknown service: %v", service)
+	}
+	img, err := p.prepareServiceImage(pod, service, &srv)
+	if err != nil {
+		return err
+	}
+	env, err := srv.Env()
+	if err != nil {
+		return err
+	}
+	log.Printf("runServiceInPod: img=%v", img)
+	return p.runServiceInPod(pod, srv.Volumes, srv.EnvFile, env, img, srv.Command, false, services, true)
+}
+
 func (p *Proc) prepareServiceImage(pod, service string, srv *dc.Service) (imageName string, err error) {
 	if image := srv.Image; image != "" {
 		return image, nil
@@ -122,7 +188,7 @@ func (p *Proc) prepareServiceImage(pod, service string, srv *dc.Service) (imageN
 	return p.BuildImage(pod, service, srv.Build.Context, srv.Build.Target, srv.Build.Args)
 }
 
-func (p *Proc) runServiceInPod(pod string, volumes []string, envFile string, env []string, image, cmd string, detach bool, hosts []string) error {
+func (p *Proc) runServiceInPod(pod string, volumes []string, envFile string, env []string, image, cmd string, detach bool, hosts []string, sync bool) error {
 	args := []string{"run", "-t", "--pod", pod}
 	if detach {
 		args = append(args, "-d")
@@ -150,7 +216,7 @@ func (p *Proc) runServiceInPod(pod string, volumes []string, envFile string, env
 		}
 		args = append(args, words...)
 	}
-	if !detach {
+	if !detach && !sync {
 		go p.runPodmanCommand(args...)
 		return nil
 	}

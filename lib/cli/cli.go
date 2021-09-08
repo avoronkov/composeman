@@ -22,8 +22,11 @@ type Cli struct {
 func New() *Cli {
 	return &Cli{
 		commands: map[string]subCommand{
-			"up":   NewUp(),
-			"down": NewDown(),
+			"up":    NewUp(),
+			"down":  NewDown(),
+			"build": NewBuild(),
+			"run":   NewRun(),
+			"rm":    NewRm(),
 		},
 	}
 }
@@ -33,6 +36,11 @@ func (c *Cli) Run(args []string) (rc int) {
 	flags := flag.NewFlagSet("composeman", flag.ContinueOnError)
 	composeFiles := &Strings{}
 	flags.Var(composeFiles, "f", "Specify an alternate compose file")
+	// ignored
+	project := ""
+	flags.StringVar(&project, "p", "", "project name (ignored)")
+	noAnsi := false
+	flags.BoolVar(&noAnsi, "no-ansi", false, "ignored")
 	if err := flags.Parse(args); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		return 2
@@ -53,7 +61,7 @@ func (c *Cli) Run(args []string) (rc int) {
 
 	cmd, ok := c.commands[flags.Arg(0)]
 	if !ok {
-		fmt.Fprintf(os.Stderr, "Unknown command specified: %v", args[0])
+		fmt.Fprintf(os.Stderr, "Unknown command specified: %v\n", flags.Arg(0))
 		return 2
 	}
 
