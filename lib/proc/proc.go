@@ -12,7 +12,7 @@ import (
 	"syscall"
 
 	"github.com/avoronkov/composeman/lib/dc"
-	shellquote "github.com/kballard/go-shellquote"
+	"github.com/avoronkov/composeman/lib/utils"
 )
 
 type Proc struct {
@@ -98,7 +98,11 @@ func (p *Proc) RunServicesInPod(pod string, services []string, detach bool) (err
 		if err != nil {
 			return err
 		}
-		err = p.runServiceInPod(pod, srv.Volumes, srv.EnvFile, env, img, srv.Command, detach, services, false)
+		cmd, err := utils.ShellCmdFromString(srv.Command)
+		if err != nil {
+			return err
+		}
+		err = p.runServiceInPod(pod, srv.Volumes, srv.EnvFile, env, img, cmd, detach, services, false)
 		if err != nil {
 			return err
 		}
@@ -113,7 +117,7 @@ func (p *Proc) RunServicesInPod(pod string, services []string, detach bool) (err
 }
 
 // Implementing "run" command
-func (p *Proc) RunService(pod, service string) (err error) {
+func (p *Proc) RunService(pod, service string, cmd []string) (err error) {
 	if pod == "" {
 		pod, err = p.DetectPodName()
 		if err != nil {
@@ -157,7 +161,11 @@ func (p *Proc) RunService(pod, service string) (err error) {
 		if err != nil {
 			return err
 		}
-		err = p.runServiceInPod(pod, srv.Volumes, srv.EnvFile, env, img, srv.Command, false, services, false)
+		cmd, err := utils.ShellCmdFromString(srv.Command)
+		if err != nil {
+			return err
+		}
+		err = p.runServiceInPod(pod, srv.Volumes, srv.EnvFile, env, img, cmd, false, services, false)
 		if err != nil {
 			return err
 		}
@@ -174,8 +182,25 @@ func (p *Proc) RunService(pod, service string) (err error) {
 	if err != nil {
 		return err
 	}
-	log.Printf("runServiceInPod: img=%v", img)
-	return p.runServiceInPod(pod, srv.Volumes, srv.EnvFile, env, img, srv.Command, false, services, true)
+	var command *utils.ShellCmd
+	if len(cmd) > 0 {
+		command = utils.ShellCmdFromArgs(cmd)
+	} else {
+		var err error
+		command, err = utils.ShellCmdFromString(srv.Command)
+		if err != nil {
+			return err
+		}
+	}
+	err = p.runServiceInPod(pod, srv.Volumes, srv.EnvFile, env, img, command, false, services, true)
+	var errRm error
+	if len(services) == 1 {
+		errRm = p.RemovePod(pod, true)
+	}
+	if err != nil {
+		return err
+	}
+	return errRm
 }
 
 func (p *Proc) prepareServiceImage(pod, service string, srv *dc.Service) (imageName string, err error) {
@@ -188,7 +213,7 @@ func (p *Proc) prepareServiceImage(pod, service string, srv *dc.Service) (imageN
 	return p.BuildImage(pod, service, srv.Build.Context, srv.Build.Target, srv.Build.Args)
 }
 
-func (p *Proc) runServiceInPod(pod string, volumes []string, envFile string, env []string, image, cmd string, detach bool, hosts []string, sync bool) error {
+func (p *Proc) runServiceInPod(pod string, volumes []string, envFile string, env []string, image string, cmd *utils.ShellCmd, detach bool, hosts []string, sync bool) error {
 	args := []string{"run", "-t", "--pod", pod}
 	if detach {
 		args = append(args, "-d")
@@ -209,12 +234,8 @@ func (p *Proc) runServiceInPod(pod string, volumes []string, envFile string, env
 		args = append(args, "--add-host", fmt.Sprintf("%v:127.0.0.1", h))
 	}
 	args = append(args, p.canonicalImageName(image))
-	if cmd != "" {
-		words, err := shellquote.Split(cmd)
-		if err != nil {
-			return err
-		}
-		args = append(args, words...)
+	if !cmd.Empty() {
+		args = append(args, cmd.Split()...)
 	}
 	if !detach && !sync {
 		go p.runPodmanCommand(args...)

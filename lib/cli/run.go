@@ -41,5 +41,5 @@ func (r *Run) Run(args []string) error {
 
 	// Perform actions
 
-	return r.Proc.RunService("", service)
+	return r.Proc.RunService("", service, flags.Args()[1:])
 }
