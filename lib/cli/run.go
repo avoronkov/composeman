@@ -30,6 +30,9 @@ func (r *Run) Run(args []string) error {
 	user := ""
 	flags.StringVar(&user, "user", "", "(ignored)")
 
+	env := &Strings{}
+	flags.Var(env, "e", "set environment variable")
+
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
@@ -41,5 +44,5 @@ func (r *Run) Run(args []string) error {
 
 	// Perform actions
 
-	return r.Proc.RunService("", service, flags.Args()[1:])
+	return r.Proc.RunService("", service, flags.Args()[1:], env.Values())
 }

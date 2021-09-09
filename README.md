@@ -47,6 +47,4 @@ $ composeman up -d my-service
 
 ## TODO
 
-- Handle "`depends_on`" directive.
-
 - Handle "`build: args`" directive.

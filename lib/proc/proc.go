@@ -117,7 +117,7 @@ func (p *Proc) RunServicesInPod(pod string, services []string, detach bool) (err
 }
 
 // Implementing "run" command
-func (p *Proc) RunService(pod, service string, cmd []string) (err error) {
+func (p *Proc) RunService(pod, service string, cmd []string, cliEnv []string) (err error) {
 	if pod == "" {
 		pod, err = p.DetectPodName()
 		if err != nil {
@@ -182,6 +182,7 @@ func (p *Proc) RunService(pod, service string, cmd []string) (err error) {
 	if err != nil {
 		return err
 	}
+	env = mergeEnvs(env, cliEnv)
 	var command *utils.ShellCmd
 	if len(cmd) > 0 {
 		command = utils.ShellCmdFromArgs(cmd)
@@ -411,4 +412,9 @@ func (p *Proc) addDependindServices(service string, result *map[string]bool) err
 		}
 	}
 	return nil
+}
+
+func mergeEnvs(env1, env2 []string) []string {
+	// TODO implement precise merring of env variables
+	return append(env1, env2...)
 }

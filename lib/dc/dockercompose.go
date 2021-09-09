@@ -2,6 +2,7 @@ package dc
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
@@ -13,6 +14,7 @@ type DockerCompose struct {
 }
 
 func NewDockerCompose(files ...string) (*DockerCompose, error) {
+	log.Printf("Compose files: %v\n", files)
 	c := &DockerCompose{
 		Services: map[string]Service{},
 	}
