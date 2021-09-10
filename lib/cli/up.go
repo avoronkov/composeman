@@ -28,5 +28,5 @@ func (u *Up) Run(args []string) error {
 		return err
 	}
 
-	return u.Proc.RunServicesInPod("", flags.Args(), detach)
+	return u.Proc.RunServicesInPod(flags.Args(), detach)
 }

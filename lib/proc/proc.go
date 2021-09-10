@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
-	"path/filepath"
 	"strings"
 	"syscall"
 
@@ -17,29 +16,21 @@ import (
 
 type Proc struct {
 	compose *dc.DockerCompose
+	pod     string
 }
 
-func New(compose *dc.DockerCompose) *Proc {
+func New(compose *dc.DockerCompose, pod string) *Proc {
+	if pod == "" {
+		panic("pod name should not be empty")
+	}
 	return &Proc{
 		compose: compose,
+		pod:     pod,
 	}
 }
 
-func (p *Proc) DetectPodName() (string, error) {
-	dir, err := os.Getwd()
-	if err != nil {
-		return "", nil
-	}
-	return filepath.Base(dir), nil
-}
-
-func (p *Proc) FindService(service string) (dc.Service, bool) {
-	srv, ok := p.compose.Services[service]
-	return srv, ok
-}
-
-func (p *Proc) CreatePod(pod string, ports []string) error {
-	args := []string{"pod", "create", "--name", pod}
+func (p *Proc) CreatePod(ports []string) error {
+	args := []string{"pod", "create", "--name", p.pod}
 	for _, p := range ports {
 		args = append(args, "-p", p)
 	}
@@ -48,17 +39,11 @@ func (p *Proc) CreatePod(pod string, ports []string) error {
 
 // Run specified services in the pod.
 // Run all services if empty list is specified.
-func (p *Proc) RunServicesInPod(pod string, services []string, detach bool) (err error) {
+func (p *Proc) RunServicesInPod(services []string, detach bool) (err error) {
 	var interupt chan os.Signal
 	if !detach {
 		interupt = make(chan os.Signal, 1)
 		signal.Notify(interupt, os.Interrupt, os.Kill, syscall.SIGTERM)
-	}
-	if pod == "" {
-		pod, err = p.DetectPodName()
-		if err != nil {
-			return err
-		}
 	}
 	if len(services) == 0 {
 		for name := range p.compose.Services {
@@ -81,7 +66,7 @@ func (p *Proc) RunServicesInPod(pod string, services []string, detach bool) (err
 	}
 
 	// start pod
-	if err := p.CreatePod(pod, ports); err != nil {
+	if err := p.CreatePod(ports); err != nil {
 		return err
 	}
 
@@ -90,7 +75,7 @@ func (p *Proc) RunServicesInPod(pod string, services []string, detach bool) (err
 		if !ok {
 			return fmt.Errorf("Unknown service: %v", service)
 		}
-		img, err := p.prepareServiceImage(pod, service, &srv)
+		img, err := p.prepareServiceImage(service, &srv)
 		if err != nil {
 			return err
 		}
@@ -102,7 +87,7 @@ func (p *Proc) RunServicesInPod(pod string, services []string, detach bool) (err
 		if err != nil {
 			return err
 		}
-		err = p.runServiceInPod(pod, srv.Volumes, srv.EnvFile, env, img, cmd, detach, services, false)
+		err = p.runServiceInPod(srv.Volumes, srv.EnvFile, env, img, cmd, detach, services, false)
 		if err != nil {
 			return err
 		}
@@ -111,19 +96,13 @@ func (p *Proc) RunServicesInPod(pod string, services []string, detach bool) (err
 		sig := <-interupt
 		log.Printf("Signal caught (%v). Interupting...", sig)
 		// maybe withVolumes should be false?
-		return p.RemovePod(pod, true)
+		return p.RemovePod(true)
 	}
 	return nil
 }
 
 // Implementing "run" command
-func (p *Proc) RunService(pod, service string, cmd []string, cliEnv []string) (err error) {
-	if pod == "" {
-		pod, err = p.DetectPodName()
-		if err != nil {
-			return err
-		}
-	}
+func (p *Proc) RunService(service string, cmd []string, cliEnv []string) (err error) {
 	services, err := p.findDependingServices([]string{service})
 	if err != nil {
 		return err
@@ -140,7 +119,7 @@ func (p *Proc) RunService(pod, service string, cmd []string, cliEnv []string) (e
 	}
 
 	// start pod
-	if err := p.CreatePod(pod, ports); err != nil {
+	if err := p.CreatePod(ports); err != nil {
 		return err
 	}
 
@@ -153,7 +132,7 @@ func (p *Proc) RunService(pod, service string, cmd []string, cliEnv []string) (e
 		if !ok {
 			return fmt.Errorf("Unknown service: %v", s)
 		}
-		img, err := p.prepareServiceImage(pod, s, &srv)
+		img, err := p.prepareServiceImage(s, &srv)
 		if err != nil {
 			return err
 		}
@@ -165,7 +144,7 @@ func (p *Proc) RunService(pod, service string, cmd []string, cliEnv []string) (e
 		if err != nil {
 			return err
 		}
-		err = p.runServiceInPod(pod, srv.Volumes, srv.EnvFile, env, img, cmd, true, services, false)
+		err = p.runServiceInPod(srv.Volumes, srv.EnvFile, env, img, cmd, true, services, false)
 		if err != nil {
 			return err
 		}
@@ -174,7 +153,7 @@ func (p *Proc) RunService(pod, service string, cmd []string, cliEnv []string) (e
 	if !ok {
 		return fmt.Errorf("Unknown service: %v", service)
 	}
-	img, err := p.prepareServiceImage(pod, service, &srv)
+	img, err := p.prepareServiceImage(service, &srv)
 	if err != nil {
 		return err
 	}
@@ -193,10 +172,10 @@ func (p *Proc) RunService(pod, service string, cmd []string, cliEnv []string) (e
 			return err
 		}
 	}
-	err = p.runServiceInPod(pod, srv.Volumes, srv.EnvFile, env, img, command, false, services, true)
+	err = p.runServiceInPod(srv.Volumes, srv.EnvFile, env, img, command, false, services, true)
 	var errRm error
 	if len(services) == 1 {
-		errRm = p.RemovePod(pod, true)
+		errRm = p.RemovePod(true)
 	}
 	if err != nil {
 		return err
@@ -204,18 +183,18 @@ func (p *Proc) RunService(pod, service string, cmd []string, cliEnv []string) (e
 	return errRm
 }
 
-func (p *Proc) prepareServiceImage(pod, service string, srv *dc.Service) (imageName string, err error) {
+func (p *Proc) prepareServiceImage(service string, srv *dc.Service) (imageName string, err error) {
 	if image := srv.Image; image != "" {
 		return image, nil
 	}
 	if srv.Build == nil {
 		return "", fmt.Errorf("'image' or 'build' should be specified for service %v", service)
 	}
-	return p.BuildImage(pod, service, srv.Build.Context, srv.Build.Target, srv.Build.Args)
+	return p.BuildImage(service, srv.Build.Context, srv.Build.Target, srv.Build.Args)
 }
 
-func (p *Proc) runServiceInPod(pod string, volumes []string, envFile string, env []string, image string, cmd *utils.ShellCmd, detach bool, hosts []string, sync bool) error {
-	args := []string{"run", "-t", "--pod", pod}
+func (p *Proc) runServiceInPod(volumes []string, envFile string, env []string, image string, cmd *utils.ShellCmd, detach bool, hosts []string, sync bool) error {
+	args := []string{"run", "-t", "--pod", p.pod}
 	if detach {
 		args = append(args, "-d")
 	}
@@ -245,15 +224,15 @@ func (p *Proc) runServiceInPod(pod string, volumes []string, envFile string, env
 	return p.runPodmanCommand(args...)
 }
 
-func (p *Proc) RemovePod(pod string, withVolumes bool) (err error) {
+func (p *Proc) RemovePod(withVolumes bool) (err error) {
 	var podVolumes []string
 	if withVolumes {
-		podVolumes, err = p.getPodVolumes(pod)
+		podVolumes, err = p.getPodVolumes()
 		if err != nil {
 			return err
 		}
 	}
-	if err = p.runPodmanCommand("pod", "rm", "-f", pod); err != nil {
+	if err = p.runPodmanCommand("pod", "rm", "-f", p.pod); err != nil {
 		return err
 	}
 	if withVolumes {
@@ -262,8 +241,8 @@ func (p *Proc) RemovePod(pod string, withVolumes bool) (err error) {
 	return err
 }
 
-func (p *Proc) BuildImage(pod, serviceName, context, target string, buildArgs map[string]string) (imageName string, err error) {
-	tag := fmt.Sprintf("img-%v-%v", pod, serviceName)
+func (p *Proc) BuildImage(serviceName, context, target string, buildArgs map[string]string) (imageName string, err error) {
+	tag := fmt.Sprintf("img-%v-%v", p.pod, serviceName)
 	if context == "" {
 		context = "."
 	}
@@ -290,8 +269,8 @@ func (p *Proc) removeVolumes(volumes []string) error {
 	return p.runPodmanCommand(args...)
 }
 
-func (p *Proc) getPodVolumes(pod string) (volumes []string, err error) {
-	podInfo, err := p.podInspect(pod)
+func (p *Proc) getPodVolumes() (volumes []string, err error) {
+	podInfo, err := p.podInspect()
 	if err != nil {
 		return nil, err
 	}
@@ -322,8 +301,8 @@ func (p *Proc) getContainerVolumes(cntId string) (volumes []string, err error) {
 	return volumes, nil
 }
 
-func (p *Proc) podInspect(pod string) (*PodInspect, error) {
-	args := []string{"pod", "inspect", pod}
+func (p *Proc) podInspect() (*PodInspect, error) {
+	args := []string{"pod", "inspect", p.pod}
 	output := &strings.Builder{}
 	cmd := exec.Command("podman", args...)
 	cmd.Stdout = output
@@ -361,15 +340,6 @@ func (p *Proc) inspect(cntId string) (*Inspect, error) {
 }
 
 func (p *Proc) canonicalImageName(image string) string {
-	/*
-		slashes := strings.Count(image, "/")
-		if slashes == 0 {
-			return "docker.io/library/" + image
-		}
-		if slashes == 1 {
-			return "docker.io/" + image
-		}
-	*/
 	return image
 }
 

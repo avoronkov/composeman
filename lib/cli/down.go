@@ -32,10 +32,5 @@ func (d *Down) Run(args []string) error {
 	}
 
 	// Perform actions
-	pod, err := d.Proc.DetectPodName()
-	if err != nil {
-		return err
-	}
-
-	return d.Proc.RemovePod(pod, removeVolumes)
+	return d.Proc.RemovePod(removeVolumes)
 }

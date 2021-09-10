@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/avoronkov/composeman/lib/dc"
@@ -47,13 +48,22 @@ func (c *Cli) Run(args []string) (rc int) {
 		return 2
 	}
 
+	if project == "" {
+		var err error
+		project, err = c.detectProjectName()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
+			return 1
+		}
+	}
+
 	// Init Proc and DockerCompose
 	cfg, err := dc.NewDockerCompose(composeFiles.Values()...)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		return 1
 	}
-	pr := proc.New(cfg)
+	pr := proc.New(cfg, project)
 
 	if flags.NArg() == 0 {
 		c.usage(os.Stderr)
@@ -98,31 +108,10 @@ func (c *Cli) defaultComposeFiles() *Strings {
 	return StringsDefault(files)
 }
 
-type Strings struct {
-	values []string
-	def    bool
-}
-
-func StringsDefault(values []string) *Strings {
-	return &Strings{
-		values: values,
-		def:    true,
+func (c *Cli) detectProjectName() (string, error) {
+	dir, err := os.Getwd()
+	if err != nil {
+		return "", nil
 	}
-}
-
-func (s *Strings) String() string {
-	return fmt.Sprintf("%v", []string(s.values))
-}
-
-func (s *Strings) Values() []string {
-	return s.values
-}
-
-func (s *Strings) Set(v string) error {
-	if s.def {
-		s.values = []string{v}
-		return nil
-	}
-	s.values = append(s.values, v)
-	return nil
+	return filepath.Base(dir), nil
 }
