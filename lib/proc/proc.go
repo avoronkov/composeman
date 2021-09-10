@@ -165,7 +165,7 @@ func (p *Proc) RunService(pod, service string, cmd []string, cliEnv []string) (e
 		if err != nil {
 			return err
 		}
-		err = p.runServiceInPod(pod, srv.Volumes, srv.EnvFile, env, img, cmd, false, services, false)
+		err = p.runServiceInPod(pod, srv.Volumes, srv.EnvFile, env, img, cmd, true, services, false)
 		if err != nil {
 			return err
 		}
@@ -272,7 +272,7 @@ func (p *Proc) BuildImage(pod, serviceName, context, target string, buildArgs ma
 		args = append(args, "--target", target)
 	}
 	for k, v := range buildArgs {
-		args = append(args, fmt.Sprintf("%v=%v", k, v))
+		args = append(args, "--build-arg", fmt.Sprintf("%v=%v", k, v))
 	}
 	err = p.runPodmanCommand(args...)
 	if err != nil {
