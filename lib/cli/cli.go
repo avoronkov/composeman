@@ -19,10 +19,14 @@ type subCommand interface {
 
 type Cli struct {
 	commands map[string]subCommand
+	stdout   io.Writer
+	stderr   io.Writer
 }
 
-func New() *Cli {
+func New(stdout, stderr io.Writer) *Cli {
 	return &Cli{
+		stdout: stdout,
+		stderr: stderr,
 		commands: map[string]subCommand{
 			"up":    NewUp(),
 			"down":  NewDown(),
@@ -63,7 +67,7 @@ func (c *Cli) Run(args []string) (rc int) {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		return 1
 	}
-	pr := proc.New(cfg, project)
+	pr := proc.New(cfg, project, c.stdout, c.stderr)
 
 	if flags.NArg() == 0 {
 		c.usage(os.Stderr)

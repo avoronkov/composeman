@@ -48,3 +48,14 @@ $ composeman up -d my-service
 ## TODO
 
 - Handle "`build: args`" directive.
+
+## Development notes
+
+### Running tests
+
+```
+$ go test -coverprofile=coverage.out -coverpkg=github.com/avoronkov/composeman/... ./...
+...
+ok      github.com/avoronkov/composeman/tests   0.858s  coverage: 48.7% of statements in github.com/avoronkov/composeman/...
+$ go tool cover -html=coverage.out
+```

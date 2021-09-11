@@ -3,6 +3,7 @@ package proc
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -17,15 +18,19 @@ import (
 type Proc struct {
 	compose *dc.DockerCompose
 	pod     string
+	stdout  io.Writer
+	stderr  io.Writer
 }
 
-func New(compose *dc.DockerCompose, pod string) *Proc {
+func New(compose *dc.DockerCompose, pod string, stdout, stderr io.Writer) *Proc {
 	if pod == "" {
 		panic("pod name should not be empty")
 	}
 	return &Proc{
 		compose: compose,
 		pod:     pod,
+		stdout:  stdout,
+		stderr:  stderr,
 	}
 }
 
@@ -346,8 +351,9 @@ func (p *Proc) canonicalImageName(image string) string {
 func (p *Proc) runPodmanCommand(args ...string) error {
 	log.Printf("Running: podman %v", strings.Join(args, " "))
 	cmd := exec.Command("podman", args...)
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
+	cmd.Stdout = p.stdout
+	cmd.Stderr = p.stderr
+	// TODO handle stdin
 	cmd.Stdin = os.Stdin
 	return cmd.Run()
 }
