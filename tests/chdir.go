@@ -2,12 +2,10 @@ package tests
 
 import (
 	"fmt"
-	"log"
 	"os"
 )
 
 func chdir(to string) string {
-	log.Printf("chdir: %v", to)
 	from, err := os.Getwd()
 	if err != nil {
 		panic(err)
