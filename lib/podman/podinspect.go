@@ -1,4 +1,4 @@
-package proc
+package podman
 
 type PodInspect struct {
 	InfraContainerID string `json:"InfraContainerID"`

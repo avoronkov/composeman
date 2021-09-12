@@ -12,6 +12,7 @@ import (
 	"syscall"
 
 	"github.com/avoronkov/composeman/lib/dc"
+	"github.com/avoronkov/composeman/lib/podman"
 	"github.com/avoronkov/composeman/lib/utils"
 )
 
@@ -107,7 +108,7 @@ func (p *Proc) RunServicesInPod(services []string, detach bool) (err error) {
 }
 
 // Implementing "run" command
-func (p *Proc) RunService(service string, cmd []string, cliEnv []string) (err error) {
+func (p *Proc) RunService(service string, cmd []string, cliEnv []string, rm bool) (err error) {
 	services, err := p.findDependingServices([]string{service})
 	if err != nil {
 		return err
@@ -179,7 +180,7 @@ func (p *Proc) RunService(service string, cmd []string, cliEnv []string) (err er
 	}
 	err = p.runServiceInPod(srv.Volumes, srv.EnvFile, env, img, command, false, services, true)
 	var errRm error
-	if len(services) == 1 {
+	if rm && len(services) == 1 {
 		errRm = p.RemovePod(true)
 	}
 	if err != nil {
@@ -275,7 +276,7 @@ func (p *Proc) removeVolumes(volumes []string) error {
 }
 
 func (p *Proc) getPodVolumes() (volumes []string, err error) {
-	podInfo, err := p.podInspect()
+	podInfo, err := podman.InspectPod(p.pod)
 	if err != nil {
 		return nil, err
 	}
@@ -304,25 +305,6 @@ func (p *Proc) getContainerVolumes(cntId string) (volumes []string, err error) {
 		volumes = append(volumes, mount.Name)
 	}
 	return volumes, nil
-}
-
-func (p *Proc) podInspect() (*PodInspect, error) {
-	args := []string{"pod", "inspect", p.pod}
-	output := &strings.Builder{}
-	cmd := exec.Command("podman", args...)
-	cmd.Stdout = output
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-	if err := cmd.Run(); err != nil {
-		return nil, err
-	}
-
-	pi := &PodInspect{}
-	if err := json.Unmarshal([]byte(output.String()), pi); err != nil {
-		return nil, err
-	}
-
-	return pi, nil
 }
 
 func (p *Proc) inspect(cntId string) (*Inspect, error) {

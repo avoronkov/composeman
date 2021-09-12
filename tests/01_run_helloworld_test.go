@@ -8,9 +8,12 @@ import (
 	"github.com/avoronkov/composeman/lib/cli"
 )
 
+const podName01 = "01_run_helloworld"
+
 func Test01RunHelloworld(t *testing.T) {
-	pwd := chdir("./01_run_helloworld")
+	pwd := chdir(podName01)
 	defer chdir(pwd)
+	defer removePod(podName01)
 
 	var stdout strings.Builder
 	c := cli.New(&stdout, os.Stderr)

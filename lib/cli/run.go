@@ -24,7 +24,7 @@ func (r *Run) Run(args []string) error {
 	flags := flag.NewFlagSet("composeman run", flag.ContinueOnError)
 	// Not used at the momemt
 	rm := false
-	flags.BoolVar(&rm, "rm", false, "(ignored)")
+	flags.BoolVar(&rm, "rm", false, "Remove container after it stops.")
 
 	// Not used at the momemt
 	user := ""
@@ -44,5 +44,5 @@ func (r *Run) Run(args []string) error {
 
 	// Perform actions
 
-	return r.Proc.RunService(service, flags.Args()[1:], env.Values())
+	return r.Proc.RunService(service, flags.Args()[1:], env.Values(), rm)
 }
