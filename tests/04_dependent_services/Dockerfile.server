@@ -1,0 +1,15 @@
+FROM docker.io/library/golang:latest AS builder
+
+WORKDIR /proj
+COPY ./go.mod ./
+COPY ./cmd/ ./cmd/
+RUN CGO_ENABLED=0 go build -o server ./cmd/server
+
+FROM scratch
+
+WORKDIR /proj
+COPY --from=builder /proj/server /proj/server
+
+CMD ["./server"]
+
+# vim: ft=dockerfile

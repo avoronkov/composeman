@@ -11,9 +11,10 @@ type Service struct {
 	Command     string      `yaml:"command"`
 	DependsOn   []string    `yaml:"depends_on"`
 	Build       *struct {
-		Context string            `yaml:"context"`
-		Target  string            `yaml:"target"`
-		Args    map[string]string `yaml:"args"`
+		Context    string            `yaml:"context"`
+		Dockerfile string            `yaml:"dockerfile"`
+		Target     string            `yaml:"target"`
+		Args       map[string]string `yaml:"args"`
 	} `yaml:"build"`
 }
 

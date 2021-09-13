@@ -196,7 +196,7 @@ func (p *Proc) prepareServiceImage(service string, srv *dc.Service) (imageName s
 	if srv.Build == nil {
 		return "", fmt.Errorf("'image' or 'build' should be specified for service %v", service)
 	}
-	return p.BuildImage(service, srv.Build.Context, srv.Build.Target, srv.Build.Args)
+	return p.BuildImage(service, srv.Build.Context, srv.Build.Target, srv.Build.Args, srv.Build.Dockerfile)
 }
 
 func (p *Proc) runServiceInPod(volumes []string, envFile string, env []string, image string, cmd *utils.ShellCmd, detach bool, hosts []string, sync bool) error {
@@ -247,7 +247,7 @@ func (p *Proc) RemovePod(withVolumes bool) (err error) {
 	return err
 }
 
-func (p *Proc) BuildImage(serviceName, context, target string, buildArgs map[string]string) (imageName string, err error) {
+func (p *Proc) BuildImage(serviceName, context, target string, buildArgs map[string]string, dockerfile string) (imageName string, err error) {
 	tag := fmt.Sprintf("img-%v-%v", p.pod, serviceName)
 	if context == "" {
 		context = "."
@@ -258,6 +258,9 @@ func (p *Proc) BuildImage(serviceName, context, target string, buildArgs map[str
 	}
 	for k, v := range buildArgs {
 		args = append(args, "--build-arg", fmt.Sprintf("%v=%v", k, v))
+	}
+	if dockerfile != "" {
+		args = append(args, "-f", dockerfile)
 	}
 	err = p.runPodmanCommand(args...)
 	if err != nil {
