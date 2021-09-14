@@ -129,6 +129,10 @@ func (p *Proc) RunService(service string, cmd []string, cliEnv []string, rm bool
 		return err
 	}
 
+	pm := podman.NewPodmanRun()
+	pm.SetStdout(p.stdout)
+	pm.SetStderr(p.stderr)
+
 	for _, s := range services {
 		if s == service {
 			// "main" service will be started later
@@ -146,11 +150,16 @@ func (p *Proc) RunService(service string, cmd []string, cliEnv []string, rm bool
 		if err != nil {
 			return err
 		}
-		cmd, err := utils.ShellCmdFromString(srv.Command)
-		if err != nil {
-			return err
-		}
-		err = p.runServiceInPod(srv.Volumes, srv.EnvFile, env, img, cmd, true, services, false)
+		err = pm.Exec(
+			img,
+			podman.OptPod(p.pod),
+			podman.OptVolume(srv.Volumes...),
+			podman.OptEnvFile(srv.EnvFile),
+			podman.OptEnv(env...),
+			podman.OptCmdString(srv.Command),
+			podman.OptDetach(true),
+			podman.OptLocalHost(services...),
+		)
 		if err != nil {
 			return err
 		}
@@ -168,17 +177,22 @@ func (p *Proc) RunService(service string, cmd []string, cliEnv []string, rm bool
 		return err
 	}
 	env = mergeEnvs(env, cliEnv)
-	var command *utils.ShellCmd
+	var command podman.RunOpt
 	if len(cmd) > 0 {
-		command = utils.ShellCmdFromArgs(cmd)
+		command = podman.OptCmdList(cmd...)
 	} else {
-		var err error
-		command, err = utils.ShellCmdFromString(srv.Command)
-		if err != nil {
-			return err
-		}
+		command = podman.OptCmdString(srv.Command)
 	}
-	err = p.runServiceInPod(srv.Volumes, srv.EnvFile, env, img, command, false, services, true)
+	err = pm.Exec(
+		img,
+		podman.OptPod(p.pod),
+		podman.OptVolume(srv.Volumes...),
+		podman.OptEnvFile(srv.EnvFile),
+		podman.OptEnv(env...),
+		command,
+		podman.OptLocalHost(services...),
+		podman.OptRm(rm),
+	)
 	var errRm error
 	if rm && len(services) == 1 {
 		errRm = p.RemovePod(true)

@@ -2,7 +2,9 @@ package podman
 
 import (
 	"io"
+	"log"
 	"os/exec"
+	"strings"
 )
 
 type Executor interface {
@@ -25,6 +27,7 @@ func NewRealExecutor() *RealExecutor {
 }
 
 func (e *RealExecutor) Exec(cmd string, args ...string) error {
+	log.Printf("Running: %v %v", cmd, strings.Join(args, " "))
 	com := exec.Command(cmd, args...)
 	com.Stdout = e.stdout
 	com.Stderr = e.stderr
