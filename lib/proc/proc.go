@@ -13,7 +13,6 @@ import (
 
 	"github.com/avoronkov/composeman/lib/dc"
 	"github.com/avoronkov/composeman/lib/podman"
-	"github.com/avoronkov/composeman/lib/utils"
 )
 
 type Proc struct {
@@ -89,14 +88,24 @@ func (p *Proc) RunServicesInPod(services []string, detach bool) (err error) {
 		if err != nil {
 			return err
 		}
-		cmd, err := utils.ShellCmdFromString(srv.Command)
-		if err != nil {
-			return err
-		}
-		err = p.runServiceInPod(srv.Volumes, srv.EnvFile, env, img, cmd, detach, services, false)
-		if err != nil {
-			return err
-		}
+		pm := podman.NewPodmanRun()
+		pm.SetStdout(p.stdout)
+		pm.SetStderr(p.stderr)
+		go func() {
+			err = pm.Exec(
+				img,
+				podman.OptPod(p.pod),
+				podman.OptVolume(srv.Volumes...),
+				podman.OptEnvFile(srv.EnvFile),
+				podman.OptEnv(env...),
+				podman.OptCmdString(srv.Command),
+				podman.OptDetach(detach),
+				podman.OptLocalHost(services...),
+			)
+			if err != nil {
+				log.Printf("[ERROR] %v", err)
+			}
+		}()
 	}
 	if !detach {
 		sig := <-interupt
@@ -211,37 +220,6 @@ func (p *Proc) prepareServiceImage(service string, srv *dc.Service) (imageName s
 		return "", fmt.Errorf("'image' or 'build' should be specified for service %v", service)
 	}
 	return p.BuildImage(service, srv.Build.Context, srv.Build.Target, srv.Build.Args, srv.Build.Dockerfile)
-}
-
-func (p *Proc) runServiceInPod(volumes []string, envFile string, env []string, image string, cmd *utils.ShellCmd, detach bool, hosts []string, sync bool) error {
-	args := []string{"run", "-t", "--pod", p.pod}
-	if detach {
-		args = append(args, "-d")
-	}
-	if len(volumes) > 0 {
-		args = append(args, "--security-opt", "label=disable")
-		for _, volume := range volumes {
-			args = append(args, "-v", volume)
-		}
-	}
-	if envFile != "" {
-		args = append(args, "--env-file", envFile)
-	}
-	for _, e := range env {
-		args = append(args, "-e", e)
-	}
-	for _, h := range hosts {
-		args = append(args, "--add-host", fmt.Sprintf("%v:127.0.0.1", h))
-	}
-	args = append(args, p.canonicalImageName(image))
-	if !cmd.Empty() {
-		args = append(args, cmd.Split()...)
-	}
-	if !detach && !sync {
-		go p.runPodmanCommand(args...)
-		return nil
-	}
-	return p.runPodmanCommand(args...)
 }
 
 func (p *Proc) RemovePod(withVolumes bool) (err error) {
