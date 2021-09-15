@@ -15,6 +15,8 @@ func Test03RunCommand(t *testing.T) {
 	defer chdir(pwd)
 	defer removePod(podName03)
 
+	compile("-o", "prog.exe")
+
 	var stdout strings.Builder
 	c := cli.New(&stdout, os.Stderr)
 	rc := c.Run([]string{"run", "prog"})
@@ -34,6 +36,8 @@ func Test03RunCommandCli(t *testing.T) {
 	pwd := chdir(podName03)
 	defer chdir(pwd)
 	defer removePod(podName03)
+
+	compile("-o", "prog.exe")
 
 	var stdout strings.Builder
 	c := cli.New(&stdout, os.Stderr)

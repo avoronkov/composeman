@@ -16,6 +16,8 @@ func Test02RunHelloworldFromDockerfile(t *testing.T) {
 	defer chdir(pwd)
 	defer removePod(podName02)
 
+	compile("-o", "helloworld.exe")
+
 	var stdout strings.Builder
 	c := cli.New(&stdout, os.Stderr)
 	rc := c.Run([]string{"run", "hello-world"})
@@ -53,6 +55,8 @@ func Test02RunHelloworldFromDockerfileRm(t *testing.T) {
 	pwd := chdir(podName02)
 	defer chdir(pwd)
 	defer removePod(podName02)
+
+	compile("-o", "helloworld.exe")
 
 	var stdout strings.Builder
 	c := cli.New(&stdout, os.Stderr)

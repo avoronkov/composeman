@@ -1,15 +1,7 @@
-FROM docker.io/library/golang:latest AS builder
-
-WORKDIR /proj
-COPY ./go.mod ./
-COPY ./cmd/ ./cmd/
-RUN ls -lh
-RUN CGO_ENABLED=0 go build -o client ./cmd/client
-
 FROM scratch
 
 WORKDIR /proj
-COPY --from=builder /proj/client /proj/client
+COPY ./client.exe /proj/client
 
 CMD ["./client"]
 

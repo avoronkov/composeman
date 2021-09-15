@@ -18,6 +18,10 @@ func Test05UpDownServices(t *testing.T) {
 	defer chdir(pwd)
 	defer removePod(podName05)
 
+	// compile binaries
+	compile("-o", "server.exe", "./cmd/server")
+	compile("-o", "client.exe", "./cmd/client")
+
 	rp, wp := io.Pipe()
 	c := cli.New(wp, os.Stderr)
 

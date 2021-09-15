@@ -15,6 +15,10 @@ func Test04RunDependentServices(t *testing.T) {
 	defer chdir(pwd)
 	defer removePod(podName04)
 
+	// compile binaries
+	compile("-o", "server.exe", "./cmd/server")
+	compile("-o", "client.exe", "./cmd/client")
+
 	var stdout strings.Builder
 	c := cli.New(&stdout, os.Stderr)
 	rc := c.Run([]string{"run", "app-client"})
