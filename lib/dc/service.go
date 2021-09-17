@@ -34,7 +34,11 @@ func (s *Service) Env() (envs []string, err error) {
 	}
 	if mp, ok := s.Environment.(map[string]interface{}); ok {
 		for k, v := range mp {
-			envs = append(envs, fmt.Sprintf("%v=%v", k, v))
+			if v != nil {
+				envs = append(envs, fmt.Sprintf("%v=%v", k, v))
+			} else {
+				envs = append(envs, k)
+			}
 		}
 		return envs, nil
 	}

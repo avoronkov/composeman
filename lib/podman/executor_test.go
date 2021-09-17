@@ -10,7 +10,7 @@ func TestExecutorTrue(t *testing.T) {
 	var e Executor
 	e = NewRealExecutor()
 
-	err := e.Exec("/bin/true")
+	err := e.Exec("true")
 	if err != nil {
 		t.Errorf("Real executor failed to run /bin/true: %v", err)
 	}
@@ -18,7 +18,7 @@ func TestExecutorTrue(t *testing.T) {
 
 func TestExecutorFalse(t *testing.T) {
 	e := NewRealExecutor()
-	err := e.Exec("/bin/false")
+	err := e.Exec("false")
 	errExit, ok := err.(*exec.ExitError)
 	if !ok {
 		t.Fatalf("Incorrect error returned: want *exec.ExitError, got %v", err)
@@ -45,7 +45,7 @@ func TestExecutorStderr(t *testing.T) {
 	e := NewRealExecutor()
 	var stderr strings.Builder
 	e.SetStderr(&stderr)
-	if err := e.Exec("/bin/sh", "-c", "echo one-two >&2"); err != nil {
+	if err := e.Exec("sh", "-c", "echo one-two >&2"); err != nil {
 		t.Fatalf("Command failed; %v", err)
 	}
 	if act, exp := stderr.String(), "one-two\n"; act != exp {
