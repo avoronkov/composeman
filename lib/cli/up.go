@@ -24,9 +24,14 @@ func (u *Up) Run(args []string) error {
 	flags := flag.NewFlagSet("composeman up", flag.ContinueOnError)
 	detach := false
 	flags.BoolVar(&detach, "d", false, "Run containers in the background")
+	build := false
+	flags.BoolVar(&build, "build", false, "(ignored)")
+	exitCodeFrom := ""
+	flags.StringVar(&exitCodeFrom, "exit-code-from", "", "(ignored)")
+
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
 
-	return u.Proc.RunServicesInPod(flags.Args(), detach)
+	return u.Proc.RunServicesInPod(flags.Args(), detach, exitCodeFrom)
 }

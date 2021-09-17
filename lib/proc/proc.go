@@ -42,9 +42,10 @@ func (p *Proc) CreatePod(ports []string) error {
 	return p.runPodmanCommand(args...)
 }
 
+// "up"
 // Run specified services in the pod.
 // Run all services if empty list is specified.
-func (p *Proc) RunServicesInPod(services []string, detach bool) (err error) {
+func (p *Proc) RunServicesInPod(services []string, detach bool, exitCodeFrom string) (err error) {
 	var interupt chan os.Signal
 	if !detach {
 		interupt = make(chan os.Signal, 1)
@@ -75,10 +76,17 @@ func (p *Proc) RunServicesInPod(services []string, detach bool) (err error) {
 		return err
 	}
 
+	pm := podman.NewPodmanRun()
+	pm.SetStdout(p.stdout)
+	pm.SetStderr(p.stderr)
 	for _, service := range services {
 		srv, ok := p.compose.Services[service]
 		if !ok {
 			return fmt.Errorf("Unknown service: %v", service)
+		}
+		if exitCodeFrom != "" && exitCodeFrom == service {
+			// this service will be started later
+			continue
 		}
 		img, err := p.prepareServiceImage(service, &srv)
 		if err != nil {
@@ -88,9 +96,6 @@ func (p *Proc) RunServicesInPod(services []string, detach bool) (err error) {
 		if err != nil {
 			return err
 		}
-		pm := podman.NewPodmanRun()
-		pm.SetStdout(p.stdout)
-		pm.SetStderr(p.stderr)
 		go func() {
 			err = pm.Exec(
 				img,
@@ -106,6 +111,34 @@ func (p *Proc) RunServicesInPod(services []string, detach bool) (err error) {
 				log.Printf("[ERROR] %v", err)
 			}
 		}()
+	}
+	if exitCodeFrom != "" {
+		service := exitCodeFrom
+		srv, ok := p.compose.Services[service]
+		if !ok {
+			return fmt.Errorf("Unknown service: %v", service)
+		}
+		img, err := p.prepareServiceImage(service, &srv)
+		if err != nil {
+			return err
+		}
+		env, err := srv.Env()
+		if err != nil {
+			return err
+		}
+		err = pm.Exec(
+			img,
+			podman.OptPod(p.pod),
+			podman.OptVolume(srv.Volumes...),
+			podman.OptEnvFile(srv.EnvFile),
+			podman.OptEnv(env...),
+			podman.OptCmdString(srv.Command),
+			podman.OptDetach(detach),
+			podman.OptLocalHost(services...),
+		)
+		if err != nil {
+			return err
+		}
 	}
 	if !detach {
 		sig := <-interupt

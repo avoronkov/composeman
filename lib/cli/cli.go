@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -84,6 +85,9 @@ func (c *Cli) Run(args []string) (rc int) {
 
 	if err := cmd.Run(flags.Args()[1:]); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err.Error())
+		if errExit, ok := err.(*exec.ExitError); ok {
+			return errExit.ExitCode()
+		}
 		return 1
 	}
 

@@ -1,0 +1,8 @@
+FROM scratch
+
+WORKDIR /proj
+COPY ./client.exe /proj/client
+
+CMD ["./client"]
+
+# vim: ft=dockerfile

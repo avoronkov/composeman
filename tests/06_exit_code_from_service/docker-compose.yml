@@ -1,0 +1,17 @@
+version: "3.7"
+
+services:
+  app-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+
+  app-client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    depends_on:
+    - app-server
+    environment:
+    - DEMO_SERVER_URL=http://app-server:8080/
+
