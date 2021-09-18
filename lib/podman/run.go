@@ -1,18 +1,7 @@
 package podman
 
-import "io"
-
-type PodmanRun struct {
-	executor Executor
-}
-
-func NewPodmanRun() *PodmanRun {
-	return &PodmanRun{
-		executor: NewRealExecutor(),
-	}
-}
-
-func (p *PodmanRun) Exec(service string, opts ...RunOpt) error {
+// "podman run ..."
+func (p *Podman) Run(service string, opts ...RunOpt) error {
 	ro := &RunOpts{}
 	for _, opt := range opts {
 		opt.SetRunOpt(ro)
@@ -48,16 +37,4 @@ func (p *PodmanRun) Exec(service string, opts ...RunOpt) error {
 	args = append(args, service)
 	args = append(args, ro.Cmd...)
 	return p.executor.Exec("podman", args...)
-}
-
-func (p *PodmanRun) SetStdout(out io.Writer) {
-	p.executor.SetStdout(out)
-}
-
-func (p *PodmanRun) SetStderr(err io.Writer) {
-	p.executor.SetStderr(err)
-}
-
-func (p *PodmanRun) SetStdin(in io.Reader) {
-	p.executor.SetStdin(in)
 }

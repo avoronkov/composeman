@@ -6,8 +6,8 @@ import (
 	"testing"
 )
 
-func makeTestPodmanRun() *PodmanRun {
-	pr := NewPodmanRun()
+func makeTestPodman() *Podman {
+	pr := NewPodman()
 	pr.executor = &executorMock{}
 	return pr
 }
@@ -48,11 +48,11 @@ func TestRunTable(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			pr := makeTestPodmanRun()
+			pr := makeTestPodman()
 
-			err := pr.Exec("my-image", test.opts...)
+			err := pr.Run("my-image", test.opts...)
 			if err != nil {
-				t.Fatalf("PodmanRun.Exec failed: %v", err)
+				t.Fatalf("Podman.Run failed: %v", err)
 			}
 
 			act := pr.executor.(*executorMock).lastCommand
@@ -65,9 +65,9 @@ func TestRunTable(t *testing.T) {
 
 // Run
 func TestRunOptCmdStringIncorrect(t *testing.T) {
-	pr := makeTestPodmanRun()
+	pr := makeTestPodman()
 
-	err := pr.Exec("my-image", OptCmdString("sh -c \"hello"))
+	err := pr.Run("my-image", OptCmdString("sh -c \"hello"))
 	if err == nil || !strings.Contains(err.Error(), "Unterminated double-quoted string") {
 		t.Errorf("Incorrect error returned on bad shell string command: %v", err)
 	}

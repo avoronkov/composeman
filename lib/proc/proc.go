@@ -76,7 +76,7 @@ func (p *Proc) RunServicesInPod(services []string, detach bool, exitCodeFrom str
 		return err
 	}
 
-	pm := podman.NewPodmanRun()
+	pm := podman.NewPodman()
 	pm.SetStdout(p.stdout)
 	pm.SetStderr(p.stderr)
 	for _, service := range services {
@@ -97,7 +97,7 @@ func (p *Proc) RunServicesInPod(services []string, detach bool, exitCodeFrom str
 			return err
 		}
 		go func() {
-			err = pm.Exec(
+			err = pm.Run(
 				img,
 				podman.OptPod(p.pod),
 				podman.OptVolume(srv.Volumes...),
@@ -126,7 +126,7 @@ func (p *Proc) RunServicesInPod(services []string, detach bool, exitCodeFrom str
 		if err != nil {
 			return err
 		}
-		return pm.Exec(
+		return pm.Run(
 			img,
 			podman.OptPod(p.pod),
 			podman.OptVolume(srv.Volumes...),
@@ -168,7 +168,7 @@ func (p *Proc) RunService(service string, cmd []string, cliEnv []string, rm bool
 		return err
 	}
 
-	pm := podman.NewPodmanRun()
+	pm := podman.NewPodman()
 	pm.SetStdout(p.stdout)
 	pm.SetStderr(p.stderr)
 
@@ -189,7 +189,7 @@ func (p *Proc) RunService(service string, cmd []string, cliEnv []string, rm bool
 		if err != nil {
 			return err
 		}
-		err = pm.Exec(
+		err = pm.Run(
 			img,
 			podman.OptPod(p.pod),
 			podman.OptVolume(srv.Volumes...),
@@ -222,7 +222,7 @@ func (p *Proc) RunService(service string, cmd []string, cliEnv []string, rm bool
 	} else {
 		command = podman.OptCmdString(srv.Command)
 	}
-	err = pm.Exec(
+	err = pm.Run(
 		img,
 		podman.OptPod(p.pod),
 		podman.OptVolume(srv.Volumes...),

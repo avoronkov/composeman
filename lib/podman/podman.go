@@ -1,31 +1,25 @@
 package podman
 
-import (
-	"encoding/json"
-	"os"
-	"os/exec"
-	"strings"
-)
+import "io"
 
-func InspectPod(pod string) (*PodInspect, error) {
-	args := []string{"pod", "inspect", pod}
-	output := &strings.Builder{}
-	stderr := &strings.Builder{}
-	cmd := exec.Command("podman", args...)
-	cmd.Stdout = output
-	cmd.Stderr = stderr
-	cmd.Stdin = os.Stdin
-	if err := cmd.Run(); err != nil {
-		if strings.Contains(stderr.String(), "no such pod") {
-			return nil, NotFoundError
-		}
-		return nil, err
+type Podman struct {
+	executor Executor
+}
+
+func NewPodman() *Podman {
+	return &Podman{
+		executor: NewRealExecutor(),
 	}
+}
 
-	pi := &PodInspect{}
-	if err := json.Unmarshal([]byte(output.String()), pi); err != nil {
-		return nil, err
-	}
+func (p *Podman) SetStdout(out io.Writer) {
+	p.executor.SetStdout(out)
+}
 
-	return pi, nil
+func (p *Podman) SetStderr(err io.Writer) {
+	p.executor.SetStderr(err)
+}
+
+func (p *Podman) SetStdin(in io.Reader) {
+	p.executor.SetStdin(in)
 }
