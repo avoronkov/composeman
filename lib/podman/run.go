@@ -25,8 +25,8 @@ func (p *Podman) Run(service string, opts ...RunOpt) error {
 			args = append(args, "-v", v)
 		}
 	}
-	if ro.EnvFile != "" {
-		args = append(args, "--env-file", ro.EnvFile)
+	for _, f := range ro.EnvFile {
+		args = append(args, "--env-file", f)
 	}
 	for _, e := range ro.Env {
 		args = append(args, "-e", e)

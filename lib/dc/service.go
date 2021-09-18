@@ -3,14 +3,14 @@ package dc
 import "fmt"
 
 type Service struct {
-	Image       string      `yaml:"image"`
-	Environment interface{} `yaml:"environment"`
-	EnvFile     string      `yaml:"env_file"`
-	Ports       []string    `yaml:"ports"`
-	Volumes     []string    `yaml:"volumes"`
-	Command     string      `yaml:"command"`
-	DependsOn   []string    `yaml:"depends_on"`
-	Build       *struct {
+	Image           string      `yaml:"image"`
+	Environment     interface{} `yaml:"environment"`
+	EnvironmentFile interface{} `yaml:"env_file"`
+	Ports           []string    `yaml:"ports"`
+	Volumes         []string    `yaml:"volumes"`
+	Command         string      `yaml:"command"`
+	DependsOn       []string    `yaml:"depends_on"`
+	Build           *struct {
 		Context    string            `yaml:"context"`
 		Dockerfile string            `yaml:"dockerfile"`
 		Target     string            `yaml:"target"`
@@ -43,4 +43,21 @@ func (s *Service) Env() (envs []string, err error) {
 		return envs, nil
 	}
 	return nil, fmt.Errorf("Unexpected type in environment: %v (%T)", s.Environment, s.Environment)
+}
+
+func (s *Service) EnvFile() (envFiles []string, err error) {
+	if s.EnvironmentFile == nil {
+		return nil, nil
+	}
+	switch e := s.EnvironmentFile.(type) {
+	case string:
+		return []string{e}, nil
+	case []interface{}:
+		for _, v := range e {
+			envFiles = append(envFiles, v.(string))
+		}
+		return envFiles, nil
+	default:
+		return nil, fmt.Errorf("Unexpected type in env_file: %v (%T)", s.EnvironmentFile, s.EnvironmentFile)
+	}
 }

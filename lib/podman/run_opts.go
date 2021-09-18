@@ -15,7 +15,7 @@ type RunOpts struct {
 	Pod     string
 	Detach  bool
 	Volumes []string
-	EnvFile string
+	EnvFile []string
 	Env     []string
 	Hosts   []string
 	Cmd     []string
@@ -67,9 +67,9 @@ func (o *optVolume) SetRunOpt(opts *RunOpts) {
 }
 
 // --env-file
-func OptEnvFile(envFile string) RunOpt { return &optEnvFile{envFile} }
+func OptEnvFile(envFile ...string) RunOpt { return &optEnvFile{envFile} }
 
-type optEnvFile struct{ envFile string }
+type optEnvFile struct{ envFile []string }
 
 func (o *optEnvFile) SetRunOpt(opts *RunOpts) {
 	opts.EnvFile = o.envFile

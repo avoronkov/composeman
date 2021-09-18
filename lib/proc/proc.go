@@ -92,12 +92,16 @@ func (p *Proc) RunServicesInPod(services []string, detach bool, exitCodeFrom str
 		if err != nil {
 			return err
 		}
+		envFile, err := srv.EnvFile()
+		if err != nil {
+			return err
+		}
 		go func() {
 			err = p.podman.Run(
 				img,
 				podman.OptPod(p.pod),
 				podman.OptVolume(srv.Volumes...),
-				podman.OptEnvFile(srv.EnvFile),
+				podman.OptEnvFile(envFile...),
 				podman.OptEnv(env...),
 				podman.OptCmdString(srv.Command),
 				podman.OptDetach(detach),
@@ -122,11 +126,15 @@ func (p *Proc) RunServicesInPod(services []string, detach bool, exitCodeFrom str
 		if err != nil {
 			return err
 		}
+		envFile, err := srv.EnvFile()
+		if err != nil {
+			return err
+		}
 		return p.podman.Run(
 			img,
 			podman.OptPod(p.pod),
 			podman.OptVolume(srv.Volumes...),
-			podman.OptEnvFile(srv.EnvFile),
+			podman.OptEnvFile(envFile...),
 			podman.OptEnv(env...),
 			podman.OptCmdString(srv.Command),
 			podman.OptDetach(detach),
@@ -181,11 +189,15 @@ func (p *Proc) RunService(service string, cmd []string, cliEnv []string, rm bool
 		if err != nil {
 			return err
 		}
+		envFile, err := srv.EnvFile()
+		if err != nil {
+			return err
+		}
 		err = p.podman.Run(
 			img,
 			podman.OptPod(p.pod),
 			podman.OptVolume(srv.Volumes...),
-			podman.OptEnvFile(srv.EnvFile),
+			podman.OptEnvFile(envFile...),
 			podman.OptEnv(env...),
 			podman.OptCmdString(srv.Command),
 			podman.OptDetach(true),
@@ -207,6 +219,10 @@ func (p *Proc) RunService(service string, cmd []string, cliEnv []string, rm bool
 	if err != nil {
 		return err
 	}
+	envFile, err := srv.EnvFile()
+	if err != nil {
+		return err
+	}
 	env = mergeEnvs(env, cliEnv)
 	var command podman.RunOpt
 	if len(cmd) > 0 {
@@ -218,7 +234,7 @@ func (p *Proc) RunService(service string, cmd []string, cliEnv []string, rm bool
 		img,
 		podman.OptPod(p.pod),
 		podman.OptVolume(srv.Volumes...),
-		podman.OptEnvFile(srv.EnvFile),
+		podman.OptEnvFile(envFile...),
 		podman.OptEnv(env...),
 		command,
 		podman.OptLocalHost(services...),
