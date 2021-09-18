@@ -126,7 +126,7 @@ func (p *Proc) RunServicesInPod(services []string, detach bool, exitCodeFrom str
 		if err != nil {
 			return err
 		}
-		err = pm.Exec(
+		return pm.Exec(
 			img,
 			podman.OptPod(p.pod),
 			podman.OptVolume(srv.Volumes...),
@@ -136,9 +136,6 @@ func (p *Proc) RunServicesInPod(services []string, detach bool, exitCodeFrom str
 			podman.OptDetach(detach),
 			podman.OptLocalHost(services...),
 		)
-		if err != nil {
-			return err
-		}
 	}
 	if !detach {
 		sig := <-interupt
