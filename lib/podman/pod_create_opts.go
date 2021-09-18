@@ -18,5 +18,5 @@ func OptPublishPort(ports ...string) PodCreateOpt {
 type optPublishPort struct{ ports []string }
 
 func (o *optPublishPort) SetPodCreateOpt(opts *PodCreateOpts) {
-	opts.Ports = o.ports
+	opts.Ports = append(opts.Ports, o.ports...)
 }

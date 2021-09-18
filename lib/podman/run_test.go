@@ -27,11 +27,25 @@ func TestPodmanRun(t *testing.T) {
 			[]RunOpt{OptVolume("./apps/common:/app/apps/common:ro", "./apps/frontend:/app/apps/frontend:ro")},
 			[]string{"podman", "run", "--security-opt", "label=disable", "-v", "./apps/common:/app/apps/common:ro", "-v", "./apps/frontend:/app/apps/frontend:ro", "my-image"},
 		},
+		{
+			"-v (--volume) multiple times",
+			[]RunOpt{OptVolume("./apps/common:/app/apps/common:ro"), OptVolume("./apps/frontend:/app/apps/frontend:ro")},
+			[]string{"podman", "run", "--security-opt", "label=disable", "-v", "./apps/common:/app/apps/common:ro", "-v", "./apps/frontend:/app/apps/frontend:ro", "my-image"},
+		},
 		{"--env-file", []RunOpt{OptEnvFile(".env.local")}, []string{"podman", "run", "--env-file", ".env.local", "my-image"}},
+		{"--env-file (2)", []RunOpt{OptEnvFile(".env.global", ".env.local")}, []string{"podman", "run", "--env-file", ".env.global", "--env-file", ".env.local", "my-image"}},
+		{"--env-file multiple times", []RunOpt{OptEnvFile(".env.global"), OptEnvFile(".env.local")}, []string{"podman", "run", "--env-file", ".env.global", "--env-file", ".env.local", "my-image"}},
+		{"--env-file", []RunOpt{OptEnvFile(".env.global", ".env.local")}, []string{"podman", "run", "--env-file", ".env.global", "--env-file", ".env.local", "my-image"}},
 		{"-e (--env)", []RunOpt{OptEnv("FOO=bar", "HELLO=world")}, []string{"podman", "run", "-e", "FOO=bar", "-e", "HELLO=world", "my-image"}},
+		{"-e (--env) multiple times", []RunOpt{OptEnv("FOO=bar"), OptEnv("HELLO=world")}, []string{"podman", "run", "-e", "FOO=bar", "-e", "HELLO=world", "my-image"}},
 		{
 			"--add-host",
 			[]RunOpt{OptLocalHost("my-service", "db")},
+			[]string{"podman", "run", "--add-host", "my-service:127.0.0.1", "--add-host", "db:127.0.0.1", "my-image"},
+		},
+		{
+			"--add-host multiple times",
+			[]RunOpt{OptLocalHost("my-service"), OptLocalHost("db")},
 			[]string{"podman", "run", "--add-host", "my-service:127.0.0.1", "--add-host", "db:127.0.0.1", "my-image"},
 		},
 		{

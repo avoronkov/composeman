@@ -72,7 +72,7 @@ func OptEnvFile(envFile ...string) RunOpt { return &optEnvFile{envFile} }
 type optEnvFile struct{ envFile []string }
 
 func (o *optEnvFile) SetRunOpt(opts *RunOpts) {
-	opts.EnvFile = o.envFile
+	opts.EnvFile = append(opts.EnvFile, o.envFile...)
 }
 
 // --env (-e)
@@ -81,7 +81,7 @@ func OptEnv(envs ...string) RunOpt { return &optEnv{envs} }
 type optEnv struct{ envs []string }
 
 func (o *optEnv) SetRunOpt(opts *RunOpts) {
-	opts.Env = o.envs
+	opts.Env = append(opts.Env, o.envs...)
 }
 
 // --add-host %v:127.0.0.1

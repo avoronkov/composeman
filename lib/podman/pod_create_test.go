@@ -13,6 +13,7 @@ func TestPodmanPodCreate(t *testing.T) {
 	}{
 		{"no args", []PodCreateOpt{}, []string{"podman", "pod", "create", "--name", "my-pod"}},
 		{"-p (--publish)", []PodCreateOpt{OptPublishPort("80:80", "81:81")}, []string{"podman", "pod", "create", "--name", "my-pod", "-p", "80:80", "-p", "81:81"}},
+		{"-p (--publish) multiple times", []PodCreateOpt{OptPublishPort("80:80"), OptPublishPort("81:81")}, []string{"podman", "pod", "create", "--name", "my-pod", "-p", "80:80", "-p", "81:81"}},
 	}
 
 	for _, test := range tests {
