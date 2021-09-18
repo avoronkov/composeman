@@ -1,3 +1,3 @@
-module 04_dependent_services
+module 05_up_services
 
-go 1.17
+go 1.16

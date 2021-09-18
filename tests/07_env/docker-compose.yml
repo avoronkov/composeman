@@ -1,0 +1,13 @@
+version: "3.7"
+
+services:
+  prog-env:
+    build:
+      context: .
+    environment:
+    - MY_TEST_ENV_VAR=from-docker-compose-yml-env
+
+  prog-envfile:
+    build:
+      context: .
+    env_file: envfile
