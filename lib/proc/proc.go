@@ -20,26 +20,25 @@ type Proc struct {
 	pod     string
 	stdout  io.Writer
 	stderr  io.Writer
+	podman  *podman.Podman
 }
 
 func New(compose *dc.DockerCompose, pod string, stdout, stderr io.Writer) *Proc {
 	if pod == "" {
 		panic("pod name should not be empty")
 	}
+
+	pm := podman.NewPodman()
+	pm.SetStdout(stdout)
+	pm.SetStderr(stderr)
+
 	return &Proc{
 		compose: compose,
 		pod:     pod,
 		stdout:  stdout,
 		stderr:  stderr,
+		podman:  pm,
 	}
-}
-
-func (p *Proc) CreatePod(ports []string) error {
-	args := []string{"pod", "create", "--name", p.pod}
-	for _, p := range ports {
-		args = append(args, "-p", p)
-	}
-	return p.runPodmanCommand(args...)
 }
 
 // "up"
@@ -72,13 +71,10 @@ func (p *Proc) RunServicesInPod(services []string, detach bool, exitCodeFrom str
 	}
 
 	// start pod
-	if err := p.CreatePod(ports); err != nil {
+	if err := p.podman.PodCreate(p.pod, podman.OptPublishPort(ports...)); err != nil {
 		return err
 	}
 
-	pm := podman.NewPodman()
-	pm.SetStdout(p.stdout)
-	pm.SetStderr(p.stderr)
 	for _, service := range services {
 		srv, ok := p.compose.Services[service]
 		if !ok {
@@ -97,7 +93,7 @@ func (p *Proc) RunServicesInPod(services []string, detach bool, exitCodeFrom str
 			return err
 		}
 		go func() {
-			err = pm.Run(
+			err = p.podman.Run(
 				img,
 				podman.OptPod(p.pod),
 				podman.OptVolume(srv.Volumes...),
@@ -126,7 +122,7 @@ func (p *Proc) RunServicesInPod(services []string, detach bool, exitCodeFrom str
 		if err != nil {
 			return err
 		}
-		return pm.Run(
+		return p.podman.Run(
 			img,
 			podman.OptPod(p.pod),
 			podman.OptVolume(srv.Volumes...),
@@ -164,13 +160,9 @@ func (p *Proc) RunService(service string, cmd []string, cliEnv []string, rm bool
 	}
 
 	// start pod
-	if err := p.CreatePod(ports); err != nil {
+	if err := p.podman.PodCreate(p.pod, podman.OptPublishPort(ports...)); err != nil {
 		return err
 	}
-
-	pm := podman.NewPodman()
-	pm.SetStdout(p.stdout)
-	pm.SetStderr(p.stderr)
 
 	for _, s := range services {
 		if s == service {
@@ -189,7 +181,7 @@ func (p *Proc) RunService(service string, cmd []string, cliEnv []string, rm bool
 		if err != nil {
 			return err
 		}
-		err = pm.Run(
+		err = p.podman.Run(
 			img,
 			podman.OptPod(p.pod),
 			podman.OptVolume(srv.Volumes...),
@@ -222,7 +214,7 @@ func (p *Proc) RunService(service string, cmd []string, cliEnv []string, rm bool
 	} else {
 		command = podman.OptCmdString(srv.Command)
 	}
-	err = pm.Run(
+	err = p.podman.Run(
 		img,
 		podman.OptPod(p.pod),
 		podman.OptVolume(srv.Volumes...),

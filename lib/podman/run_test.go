@@ -12,7 +12,7 @@ func makeTestPodman() *Podman {
 	return pr
 }
 
-func TestRunTable(t *testing.T) {
+func TestPodmanRun(t *testing.T) {
 	tests := []struct {
 		name string
 		opts []RunOpt
