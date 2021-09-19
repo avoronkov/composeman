@@ -96,7 +96,7 @@ func (p *Proc) RunServicesInPod(services []string, detach bool, exitCodeFrom str
 		if err != nil {
 			return err
 		}
-		if err := p.createMountedRwDirs(srv.Volumes); err != nil {
+		if err := createMountedRwDirs(srv.Volumes); err != nil {
 			return err
 		}
 		go func() {
@@ -133,7 +133,7 @@ func (p *Proc) RunServicesInPod(services []string, detach bool, exitCodeFrom str
 		if err != nil {
 			return err
 		}
-		if err := p.createMountedRwDirs(srv.Volumes); err != nil {
+		if err := createMountedRwDirs(srv.Volumes); err != nil {
 			return err
 		}
 		return p.podman.Run(
@@ -199,7 +199,7 @@ func (p *Proc) RunService(service string, cmd []string, cliEnv []string, rm bool
 		if err != nil {
 			return err
 		}
-		if err := p.createMountedRwDirs(srv.Volumes); err != nil {
+		if err := createMountedRwDirs(srv.Volumes); err != nil {
 			return err
 		}
 		err = p.podman.Run(
@@ -239,7 +239,7 @@ func (p *Proc) RunService(service string, cmd []string, cliEnv []string, rm bool
 	} else {
 		command = podman.OptCmdString(srv.Command)
 	}
-	if err := p.createMountedRwDirs(srv.Volumes); err != nil {
+	if err := createMountedRwDirs(srv.Volumes); err != nil {
 		return err
 	}
 	err = p.podman.Run(
@@ -422,17 +422,22 @@ func mergeEnvs(env1, env2 []string) []string {
 	return append(env1, env2...)
 }
 
-func (p *Proc) createMountedRwDirs(volumes []string) error {
+var mkdir = os.MkdirAll
+
+func createMountedRwDirs(volumes []string) error {
 	for _, volume := range volumes {
 		if strings.HasSuffix(volume, ":ro") {
 			continue
+		}
+		if strings.HasSuffix(volume, ":rw") {
+			volume = volume[0 : len(volume)-3]
 		}
 		fields := strings.Split(volume, ":")
 		if len(fields) != 2 {
 			return fmt.Errorf("Cannot process volume specification: %v", volume)
 		}
 		from := fields[0]
-		if err := os.MkdirAll(from, 0755); err != nil {
+		if err := mkdir(from, 0755); err != nil {
 			return err
 		}
 	}
