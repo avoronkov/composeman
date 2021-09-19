@@ -96,6 +96,9 @@ func (p *Proc) RunServicesInPod(services []string, detach bool, exitCodeFrom str
 		if err != nil {
 			return err
 		}
+		if err := p.createMountedRwDirs(srv.Volumes); err != nil {
+			return err
+		}
 		go func() {
 			err = p.podman.Run(
 				img,
@@ -128,6 +131,9 @@ func (p *Proc) RunServicesInPod(services []string, detach bool, exitCodeFrom str
 		}
 		envFile, err := srv.EnvFile()
 		if err != nil {
+			return err
+		}
+		if err := p.createMountedRwDirs(srv.Volumes); err != nil {
 			return err
 		}
 		return p.podman.Run(
@@ -193,6 +199,9 @@ func (p *Proc) RunService(service string, cmd []string, cliEnv []string, rm bool
 		if err != nil {
 			return err
 		}
+		if err := p.createMountedRwDirs(srv.Volumes); err != nil {
+			return err
+		}
 		err = p.podman.Run(
 			img,
 			podman.OptPod(p.pod),
@@ -229,6 +238,9 @@ func (p *Proc) RunService(service string, cmd []string, cliEnv []string, rm bool
 		command = podman.OptCmdList(cmd...)
 	} else {
 		command = podman.OptCmdString(srv.Command)
+	}
+	if err := p.createMountedRwDirs(srv.Volumes); err != nil {
+		return err
 	}
 	err = p.podman.Run(
 		img,
@@ -408,4 +420,21 @@ func (p *Proc) addDependindServices(service string, result *map[string]bool) err
 func mergeEnvs(env1, env2 []string) []string {
 	// TODO implement precise merring of env variables
 	return append(env1, env2...)
+}
+
+func (p *Proc) createMountedRwDirs(volumes []string) error {
+	for _, volume := range volumes {
+		if strings.HasSuffix(volume, ":ro") {
+			continue
+		}
+		fields := strings.Split(volume, ":")
+		if len(fields) != 2 {
+			return fmt.Errorf("Cannot process volume specification: %v", volume)
+		}
+		from := fields[0]
+		if err := os.MkdirAll(from, 0755); err != nil {
+			return err
+		}
+	}
+	return nil
 }

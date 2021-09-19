@@ -42,7 +42,7 @@ func Test08VolumesRw(t *testing.T) {
 	pwd := chdir(podName)
 	defer chdir(pwd)
 
-	for _, existing := range []bool{true} {
+	for _, existing := range []bool{true, false} {
 		t.Run(fmt.Sprintf("existing mount-dir: %v", existing), func(t *testing.T) {
 			defer removePod(podName)
 
