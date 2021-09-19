@@ -1,0 +1,20 @@
+version: "3.7"
+
+services:
+  prog-ro:
+    build:
+      context: .
+    volumes:
+    - ./volume-ro:/my-data:ro
+    environment:
+    - TEST_FILE=/my-data/testfile.txt
+    - PROG_ACTION=read
+
+  prog-rw:
+    build:
+      context: .
+    volumes:
+    - ./volume-rw:/my-data
+    environment:
+    - TEST_FILE=/my-data/testfile.out
+    - PROG_ACTION=write

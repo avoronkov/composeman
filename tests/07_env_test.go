@@ -41,6 +41,8 @@ func Test07Env(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			defer removePod(podName)
+
 			var stdout strings.Builder
 			c := cli.New(&stdout, os.Stderr)
 			rc := c.Run(test.command)
