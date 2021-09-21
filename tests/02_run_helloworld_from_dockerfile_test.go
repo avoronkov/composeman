@@ -44,10 +44,20 @@ func Test02RunHelloworldFromDockerfile(t *testing.T) {
 		if cnt.Id == podInfo.InfraContainerID {
 			continue
 		}
-		if exp := "exited"; cnt.State != exp {
-			t.Errorf("Incorrect app containter state: expected %v, found %v", exp, cnt.State)
+
+		if exp := []string{"exited", "stopped"}; !stringsContain(exp, cnt.State) {
+			t.Errorf("Incorrect app containter state: expected one of %v, found %v", exp, cnt.State)
 		}
 	}
+}
+
+func stringsContain(list []string, s string) bool {
+	for _, x := range list {
+		if x == s {
+			return true
+		}
+	}
+	return false
 }
 
 // run --rm removes container after finishing.

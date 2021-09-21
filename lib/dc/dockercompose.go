@@ -1,9 +1,7 @@
 package dc
 
 import (
-	"fmt"
 	"os"
-	"strings"
 
 	yaml "gopkg.in/yaml.v3"
 )
@@ -40,13 +38,4 @@ func NewDockerCompose(files ...string) (*DockerCompose, error) {
 	}
 
 	return c, nil
-}
-
-func (c *DockerCompose) String() string {
-	buf := &strings.Builder{}
-	fmt.Fprintf(buf, "Services:\n")
-	for name, srv := range c.Services {
-		fmt.Fprintf(buf, "%v:\n%v\n", name, srv.String())
-	}
-	return buf.String()
 }

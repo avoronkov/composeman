@@ -99,8 +99,8 @@ func (p *Proc) RunServicesInPod(services []string, detach bool, exitCodeFrom str
 		if err := createMountedRwDirs(srv.Volumes); err != nil {
 			return err
 		}
-		go func() {
-			err = p.podman.Run(
+		runCmd := func() error {
+			return p.podman.Run(
 				img,
 				podman.OptPod(p.pod),
 				podman.OptVolume(srv.Volumes...),
@@ -110,10 +110,21 @@ func (p *Proc) RunServicesInPod(services []string, detach bool, exitCodeFrom str
 				podman.OptDetach(detach),
 				podman.OptLocalHost(services...),
 			)
+		}
+		if detach {
+			err = runCmd()
 			if err != nil {
-				log.Printf("[ERROR] %v", err)
+				return err
 			}
-		}()
+		} else {
+			go func() {
+				err = runCmd()
+				if err != nil {
+					log.Printf("[ERROR] %v", err)
+				}
+			}()
+
+		}
 	}
 	if exitCodeFrom != "" {
 		service := exitCodeFrom
